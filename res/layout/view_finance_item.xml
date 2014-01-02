@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="horizontal"
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:padding="@dimen/padding_small"
+              android:gravity="center_vertical">
+
+    <CheckBox
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/positiveCheckbox"/>
+
+    <EditText
+            android:layout_width="0dp"
+            android:layout_weight="3"
+            android:layout_height="wrap_content"
+            android:hint="@string/item"
+            android:background="@null"
+            android:imeOptions="actionNext"
+            android:id="@+id/nameEditText"/>
+
+    <EditText
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:background="@null"
+            android:layout_height="wrap_content"
+            android:inputType="numberDecimal"
+            android:imeOptions="actionNext"
+            android:ems="10"
+            android:hint="@string/amount"
+            android:id="@+id/amountEditText"/>
+
+    <Button
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:background="@drawable/ic_remove"
+            android:id="@+id/removeButton"/>
+</LinearLayout>
