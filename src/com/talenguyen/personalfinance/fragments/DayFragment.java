@@ -1,29 +1,28 @@
 package com.talenguyen.personalfinance.fragments;
 
-import java.lang.ref.WeakReference;
-
-import android.content.Context;
 import android.database.Cursor;
-import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager.LoaderCallbacks;
-import android.support.v4.widget.CursorAdapter;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
 import android.widget.TextView;
-
 import com.talenguyen.framework.adapter.CustomAdapter;
+import com.talenguyen.framework.adapter.CustomAdapter.AdapterViewFactory;
+import com.talenguyen.framework.adapter.CustomAdapter.ViewHolder;
+import com.talenguyen.framework.utils.DateTimeUtils;
 import com.talenguyen.personalfinance.R;
 import com.talenguyen.personalfinance.data.FinanceItem;
 import com.talenguyen.personalfinance.database.DBController;
 import com.talenguyen.personalfinance.database.FinanceTable;
 import com.talenguyen.personalfinance.views.FinanceItemView;
 import com.talenguyen.personalfinance.views.FinanceItemView.FinanceItemViewCallback;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author: GIANG
@@ -32,15 +31,62 @@ import com.talenguyen.personalfinance.views.FinanceItemView.FinanceItemViewCallb
  */
 public class DayFragment extends Fragment implements LoaderCallbacks<Cursor> {
 
-	private FinanceAdapter mAdapter;
-	private CustomAdapter<FinanceItem> mCustomAdapter;
-	private TextView mTotlalAmountView;
+	private static final String TAG = DayFragment.class.getSimpleName();
+	private CustomAdapter<FinanceItem> mAdapter;
+	private TextView mTotalAmountView;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		mAdapter = new FinanceAdapter(this);
-		mCustomAdapter = new CustomAdapter<FinanceItem>(getActivity(), layoutId, viewHolderFactory)
+		mAdapter = new CustomAdapter<FinanceItem>(new AdapterViewFactory<FinanceItem>() {
+
+			@Override
+			public ViewHolder<FinanceItem> newViewHolder() {
+				return new ViewHolder<FinanceItem>() {
+
+					FinanceItemView view;
+
+					@Override
+					public void findView(View view) {
+						this.view = (FinanceItemView) view;
+					}
+
+					@Override
+					public void bindView(final FinanceItem item) {
+						view.bindView(item);
+						view.setFinanceItemViewCallback(new FinanceItemViewCallback() {
+
+							@Override
+							public void onNewItemSubmit(boolean positive, String name, float amount) {
+
+							}
+
+							@Override
+							public void onRemoveButtonClick() {
+								// final FinanceItem item = mAdapter.getItem(position);
+								DBController.deleteFinanceItemByIdAsync(getActivity(), item.getId());
+								mAdapter.remove(item);
+								mAdapter.notifyDataSetChanged();
+
+							}
+
+							@Override
+							public void onUpdateItemSubmit(boolean positive,
+									String name, float amount) {
+								DBController.updateFinanceItemAsync(getActivity(), item.getId(), positive, name, amount);
+							}
+						});
+					}
+				};
+			}
+
+			@Override
+			public View newView(ViewGroup parent) {
+				return new FinanceItemView(getActivity());
+			}
+
+
+		});
 	}
 
 	@Override
@@ -48,7 +94,7 @@ public class DayFragment extends Fragment implements LoaderCallbacks<Cursor> {
 			Bundle savedInstanceState) {
 		final View localView = inflater.inflate(R.layout.fragment_day,
 				container, false);
-		mTotlalAmountView = (TextView) localView
+		mTotalAmountView = (TextView) localView
 				.findViewById(R.id.totalAmountTextView);
 		final ListView listView = (ListView) localView
 				.findViewById(R.id.list_view);
@@ -60,25 +106,21 @@ public class DayFragment extends Fragment implements LoaderCallbacks<Cursor> {
 			}
 
 			@Override
-			public void onSubmit(final boolean positive, final String name,
+			public void onNewItemSubmit(final boolean positive, final String name,
 					final float amount) {
+				DBController.insertFinanceItemAsync(getActivity(), positive, name, amount);
+				final FinanceItem item = new FinanceItem(0, name, amount, positive, DateTimeUtils.formatDate(System.currentTimeMillis()), DateTimeUtils.formatTime(System.currentTimeMillis()));
+				mAdapter.add(item);
+				mAdapter.notifyDataSetChanged();
 				footer.reset();
-				new AsyncTask<Void, Void, Uri>() {
-					@Override
-					protected Uri doInBackground(Void... voids) {
-						return DBController.insertFinanceItem(getActivity()
-								.getApplicationContext(), positive, name,
-								amount);
-					}
+				listView.setSelection(mAdapter.getCount() - 1);
+			}
 
-					@Override
-					protected void onPostExecute(Uri result) {
-						super.onPostExecute(result);
-						if (result != null) {
-							refreshList();
-						}
-					}
-				}.execute();
+			@Override
+			public void onUpdateItemSubmit(boolean positive, String name,
+					float amount) {
+				// TODO Auto-generated method stub
+
 			}
 		});
 		listView.addFooterView(footer);
@@ -102,15 +144,30 @@ public class DayFragment extends Fragment implements LoaderCallbacks<Cursor> {
 	public void onLoadFinished(
 			android.support.v4.content.Loader<Cursor> cursorLoader,
 			Cursor cursor) {
+		Log.d(TAG, "onLoadFinished");
 		final float totalAmount = getTotalAmount(cursor);
-		mTotlalAmountView.setText(String.valueOf(totalAmount));
-		mAdapter.swapCursor(cursor);
+		mTotalAmountView.setText(String.valueOf(totalAmount));
+		mAdapter.swapData(getItems(cursor));
 	}
 
 	@Override
 	public void onLoaderReset(
 			android.support.v4.content.Loader<Cursor> cursorLoader) {
-		mAdapter.swapCursor(null);
+		mAdapter.swapData(null);
+	}
+
+	private List<FinanceItem> getItems(Cursor cursor) {
+		if (cursor == null || !cursor.moveToFirst()) {
+			return null;
+		}
+
+		final List<FinanceItem> result = new ArrayList<FinanceItem>();
+		do {
+			final FinanceItem item = new FinanceItem(cursor);
+			result.add(item);
+		} while (cursor.moveToNext());
+
+		return result;
 	}
 
 	private float getTotalAmount(Cursor cursor) {
@@ -126,47 +183,4 @@ public class DayFragment extends Fragment implements LoaderCallbacks<Cursor> {
 		return totalAmount;
 	}
 
-	private void refreshList() {
-		getLoaderManager().restartLoader(0, null, this);
-	}
-
-	private static class FinanceAdapter extends CursorAdapter {
-
-		protected static final String TAG = FinanceAdapter.class.getSimpleName();
-		final WeakReference<DayFragment> dayfragmentRef;
-		public FinanceAdapter(DayFragment dayFragment) {
-			super(dayFragment.getActivity(), null, CursorAdapter.FLAG_REGISTER_CONTENT_OBSERVER);
-			dayfragmentRef = new WeakReference<DayFragment>(dayFragment);
-		}
-
-		@Override
-		public View newView(final Context context, Cursor cursor, ViewGroup viewGroup) {
-			final FinanceItemView view = new FinanceItemView(context);
-			final long id = cursor.getLong(cursor.getColumnIndex(FinanceTable._ID));
-			view.setFinanceItemViewCallback(new FinanceItemViewCallback() {
-				
-				@Override
-				public void onSubmit(boolean positive, String name, float amount) {
-					
-				}
-				
-				@Override
-				public void onRemoveButtonClick() {
-					Log.d(TAG, "onRemoveButtonClick");
-					DBController.deleteFinanceItemById(context, id);
-					final DayFragment fragment = dayfragmentRef.get();
-					if (fragment != null) {
-						fragment.refreshList();
-					}
-				}
-			});
-			return view;
-		}
-
-		@Override
-		public void bindView(View view, Context context, Cursor cursor) {
-			final FinanceItem item = new FinanceItem(cursor);
-			((FinanceItemView) view).bindView(item);
-		}
-	}
 }
