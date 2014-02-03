@@ -14,21 +14,18 @@
 
     <EditText
             android:layout_width="0dp"
-            android:layout_weight="3"
+            android:layout_weight="7"
             android:layout_height="wrap_content"
+            android:inputType="textNoSuggestions"
             android:hint="@string/item"
-            android:background="@null"
             android:id="@+id/nameEditText"/>
 
     <EditText
             android:layout_width="0dp"
-            android:layout_weight="1"
-            android:background="@null"
+            android:layout_weight="3"
             android:layout_height="wrap_content"
-            android:inputType="numberDecimal"
+            android:inputType="numberDecimal|textNoSuggestions"
             android:imeOptions="actionDone"
-            android:ems="10"
-            android:gravity="right"
             android:hint="@string/amount"
             android:id="@+id/amountEditText"/>
 

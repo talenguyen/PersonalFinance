@@ -2,10 +2,12 @@ package com.talenguyen.personalfinance.views;
 
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.os.Build.VERSION_CODES;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -65,6 +67,7 @@ public class FinanceItemView extends LinearLayout {
     public FinanceItemView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
         initView(context);
+
     }
 
     public void setFinanceItemViewCallback(FinanceItemViewCallback callback) {
@@ -114,6 +117,12 @@ public class FinanceItemView extends LinearLayout {
                 });
             } else if (view.getId() == R.id.nameEditText) {
                 nameEditText = (EditText) view;
+                nameEditText.setOnFocusChangeListener(new OnFocusChangeListener() {
+                    @Override
+                    public void onFocusChange(View view, boolean b) {
+                        Log.d(TAG, "onFocusChange()");
+                    }
+                });
             } else if (view.getId() == R.id.amountEditText) {
                 amountEditText = (EditText) view;
                 amountEditText.setOnEditorActionListener(new OnEditorActionListener() {
